@@ -62,6 +62,24 @@ pair issued by "tctl auth sign --format=db".
   --labels=env=aws
 Starts a database server that proxies Aurora MySQL database running in AWS
 region us-west-1 which only allows access to users with the role "env=aws".`
+
+	dbCreateConfigExamples = `
+> telelport db configure create --enable-rds-auto-discovery
+Generates a configuration with samples and Aurora/RDS auto-discovery enabled.
+
+> telelport db configure create --enable-dynamic-registration
+Generates a configuration with samples and databases automatic registration activated.
+
+> teleport db configure create \
+   --token=/tmp/token \
+   --auth-server=localhost:3025 \
+   --name=sample-db \
+   --protocol=postgres \
+   --uri=postgres://localhost:5432
+Generates a configuration with a Postgres database.
+
+> telelport db configure create --output file:///teleport.yaml
+Generates a configuration with samples and write to "/teleport.yaml".`
 )
 
 var (

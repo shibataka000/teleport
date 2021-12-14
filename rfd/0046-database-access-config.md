@@ -1,5 +1,5 @@
 ---
-authors: Roman Tkachenko (roman@goteleport.com)
+authors: Roman Tkachenko (roman@goteleport.com), Gabriel Corado (gabriel.oliveira@goteleport.com)
 state: draft
 ---
 
@@ -31,10 +31,11 @@ experience.
 
 ## Scope
 
-The initial implementation will focus on bootstrapping the agent's AWS IAM
-policies but we'll make the effort to design the CLI interface in a way which
-would allow for extensibility to support other scenarios (self-hosted, other
-clouds and auth types).
+The initial implementation will focus on:
+1. Generate database agent configuration with samples;
+2. Bootstrap the agent's AWS IAM policies but we'll make the effort to design
+   the CLI interface in a way which would allow for extensibility to support
+   other scenarios (self-hosted, other clouds and auth types);
 
 ## Prior art
 
@@ -68,10 +69,162 @@ Database agent bootstrap commands will reside under `teleport db configure`
 family of subcommands. This aligns with our strategy of placing commands related
 to a particular service under its own subcommand namespace.
 
-The "configure" command will provide subcommands for configuring database agents
-in different environments. This RFD focuses on `aws` subcommands that deal with
-configuring IAM for agents that proxy AWS-hosted databases (RDS, Aurora,
-Redshift).
+The "configure" command will provide subcommands for generating configuration
+files and configuring database agents in different environments. This RFD
+focuses on `aws` subcommands that deal with configuring IAM for agents that
+proxy AWS-hosted databases (RDS, Aurora, Redshift).
+
+### Create config subcommand
+
+Similar to `teleport configure` but focused on configurations for Database
+agents. This command will generate a configuration file. It can also provide
+some examples of configuration, for instance, self-hosted databases setup.
+
+There will be flags to enable features like Aurora/RDS auto-discovery and
+dynamic registration. Each sample will show the required options with some
+explanation on how to fill them and documentation links.
+
+It will also provide flags to configure a specific database (similar to the
+flags present on the `teleport db start` command). When executed with these
+flags, the samples will not be included, only the static configuration of a
+single database.
+
+```bash
+teleport db configure create [--auth-server] [--token=] [--version=] [--enable-rds-auto-discovery] [--enable-dynamic-registration] [--output=] [--ca-pin] [--name] [--protocol] [--uri]
+```
+
+| Flag                            | Description |
+| ------------------------------- | ----------- |
+| `--auth-server`                 | Address of the auth server. |
+| `--token`                       | Invitation token to register with an auth server |
+| `--version`                     | Teleport configuration version. |
+| `--enable-rds-auto-discovery`   | Enables Aurora/RDS auto-discovery. |
+| `--enable-dynamic-registration` | Enables Dynamic registration. |
+| `--output`                      | Write to stdout with -o=stdout, default config file with -o=file or custom path with -o=file:///path |
+| `--ca-pin`                      | CA pin to validate the auth server (can be repeated for multiple pins). |
+| `--name`                        | Name of the proxied database. |
+| `--protocol`                    | Proxied database protocol. Supported are: [postgres mysql mongodb cockroachdb]. |
+| `--uri`                         | Address the proxied database is reachable at. |
+
+* When configuring a single database, `name`, `protocol` and `uri` are required;
+
+**Examples:**
+
+None of the flags are required. Running the command without flags should output
+a configuration with samples.
+
+```bash
+# will generate a configuration file for the database agent.
+$ teleport db configure create
+
+#
+# Teleport database agent configuration file.
+# Configuration reference: https://goteleport.com/docs/database-access/reference/configuration/
+#
+version: v2
+teleport:
+  nodename: localhost
+  data_dir: /var/lib/teleport
+  auth_token: /tmp/token
+  auth_servers:
+  - 127.0.0.1:3025
+db_service:
+  enabled: "yes"
+  # Lists statically registered databases proxied by this agent.
+  # databases:
+  # # RDS database static configuration.
+  # # RDS/Aurora databases Auto-discovery reference: https://goteleport.com/docs/database-access/guides/rds/
+  # - name: rds
+  #   description: AWS RDS/Aurora instance configuration example.
+  #   # Supported protocols for RDS/Aurora: "postgres" or "mysql"
+  #   protocol: postgres
+  #   # Database connection endpoint. Must be reachable from Database Service.
+  #   uri: rds-instance-1.abcdefghijklmnop.us-west-1.rds.amazonaws.com:5432
+  #   # AWS specific configuration.
+  #   aws:
+  #     # Region the database is deployed in.
+  #     region: us-west-1
+  #     # RDS/Aurora specific configuration.
+  #     rds:
+  #       # RDS Instance ID. Only present on RDS databases.
+  #       instance_id: rds-instance-1
+  # # Aurora database static configuration.
+  # # RDS/Aurora databases Auto-discovery reference: https://goteleport.com/docs/database-access/guides/rds/
+  # - name: aurora
+  #   description: AWS Aurora cluster configuration example.
+  #   # Supported protocols for RDS/Aurora: "postgres" or "mysql"
+  #   protocol: postgres
+  #   # Database connection endpoint. Must be reachable from Database Service.
+  #   uri: aurora-cluster-1.abcdefghijklmnop.us-west-1.rds.amazonaws.com:5432
+  #   # AWS specific configuration.
+  #   aws:
+  #     # Region the database is deployed in.
+  #     region: us-west-1
+  #     # RDS/Aurora specific configuration.
+  #     rds:
+  #       # Aurora Cluster ID. Only present on Aurora databases.
+  #       cluster_id: aurora-cluster-1
+  # # Redshift database static configuration.
+  # # For more information: https://goteleport.com/docs/database-access/guides/postgres-redshift/
+  # - name: redshift
+  #   description: AWS Redshift cluster configuration example.
+  #   # Supported protocols for Redshift: "postgres" or "mysql"
+  #   protocol: postgres
+  #   # Database connection endpoint. Must be reachable from Database service.
+  #   uri: redshift-cluster-example-1.abcdefghijklmnop.us-west-1.redshift.amazonaws.com:5439
+  #   # AWS specific configuration.
+  #   aws:
+  #     # Region the database is deployed in.
+  #     region: us-west-1
+  #     # Redshift specific configuration.
+  #     redshift:
+  #       # Redshift Cluster ID.
+  #       cluster_id: redshift-cluster-example-1
+  # # Self-hosted static configuration.
+  # - name: self-hosted
+  #   description: Self-hosted database configuration.
+  #   # Supported protocols for self-hosted: postgres, mysql, mongodb, cockroachdb.
+  #   protocol: postgres
+  #   # Database connection endpoint. Must be reachable from Database service.
+  #   uri: database.example.com:5432
+auth_service:
+  enabled: "no"
+ssh_service:
+  enabled: "no"
+proxy_service:
+  enabled: "no"
+```
+
+Similarly to configure command, it will also support writing the configuration directly to a file.
+
+```bash
+# write to the default file location.
+$ teleport db configure create --output file
+
+Wrote config to file "/etc/teleport.yaml". Now you can start the server. Happy Teleporting!
+```
+
+```bash
+# write to the provided file location.
+$ teleport db configure create --output file:///teleport.yaml
+
+Wrote config to file "/teleport.yaml". Now you can start the server. Happy Teleporting!
+```
+
+Configure a single database.
+
+```bash
+# generates a configuration for a Postgres database.
+$ teleport db configure create \
+   --token=/tmp/token \
+   --auth-server=localhost:3025 \
+   --name=sample-db \
+   --protocol=postgres \
+   --uri=postgres://localhost:5432
+```
+
+### AWS subcommand
+
 
 ```bash
 $ teleport db configure aws ...
@@ -92,7 +245,7 @@ $ teleport db configure aws create-iam
 $ teleport db configure aws print-iam
 ```
 
-### Automatic mode
+#### Automatic mode
 
 To use automatic mode, user needs to run `teleport db configure aws` command
 on the machine with permissions to create and attach IAM policies.
@@ -171,7 +324,7 @@ Example output:
 ✅ Attaching IAM policy and boundary to DatabaseAgentRole... done
 ```
 
-#### Error handling
+##### Error handling
 
 In case the automatic mode encounters a permission or any other kind of error
 (e.g. policy doesn't allow creating or attaching other policies), it falls back
@@ -180,7 +333,7 @@ to manual mode where it prints:
 - IAM permissions it requires to be able to create and attach these policies.
 - Policy and boundary in case user wants to create them themselves.
 
-### Manual mode
+#### Manual mode
 
 In manual mode configurator only prints the policy and boundary. User is
 responsible for creating and attaching them to IAM identity themselves.
