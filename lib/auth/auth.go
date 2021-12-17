@@ -811,7 +811,7 @@ func (a *Server) generateUserCert(req certRequest) (*proto.Certs, error) {
 		return nil, trace.Wrap(err)
 	}
 	if lockErr := a.checkLockInForce(req.checker.LockingMode(authPref.GetLockingMode()), append(
-		services.RolesToLockTargets(req.checker.RoleNames()),
+		services.RolesToLockTargets(req.checker.Roles()),
 		types.LockTarget{User: req.user.GetName()},
 		types.LockTarget{MFADevice: req.mfaVerified},
 	)); lockErr != nil {
@@ -904,7 +904,7 @@ func (a *Server) generateUserCert(req certRequest) (*proto.Certs, error) {
 		Impersonator:          req.impersonator,
 		AllowedLogins:         allowedLogins,
 		TTL:                   sessionTTL,
-		Roles:                 req.checker.RoleNames(),
+		Roles:                 req.checker.Roles(),
 		CertificateFormat:     certificateFormat,
 		PermitPortForwarding:  req.checker.CanPortForward(),
 		PermitAgentForwarding: req.checker.CanForwardAgents(),
@@ -914,6 +914,7 @@ func (a *Server) generateUserCert(req certRequest) (*proto.Certs, error) {
 		ActiveRequests:        req.activeRequests,
 		MFAVerified:           req.mfaVerified,
 		ClientIP:              req.clientIP,
+		CertificateExtensions: req.checker.CertificateExtensions(),
 	}
 	sshCert, err := a.Authority.GenerateUserCert(params)
 	if err != nil {
@@ -963,7 +964,7 @@ func (a *Server) generateUserCert(req certRequest) (*proto.Certs, error) {
 	identity := tlsca.Identity{
 		Username:          req.user.GetName(),
 		Impersonator:      req.impersonator,
-		Groups:            req.checker.RoleNames(),
+		Groups:            req.checker.Roles(),
 		Principals:        allowedLogins,
 		Usage:             req.usage,
 		RouteToCluster:    req.routeToCluster,

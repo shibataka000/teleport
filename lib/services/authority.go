@@ -255,6 +255,8 @@ type UserCertParams struct {
 	MFAVerified string
 	// ClientIP is an IP of the client to embed in the certificate.
 	ClientIP string
+	// CertificateExtensions are user configured ssh key extensions
+	CertificateExtensions []*types.CertExtension
 }
 
 // Check checks the user certificate parameters

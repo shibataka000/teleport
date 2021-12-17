@@ -738,7 +738,7 @@ func getPAMConfig(c *ServerContext) (*PAMConfig, error) {
 	// If the identity has roles, extract the role names.
 	var roleNames []string
 	if len(c.Identity.RoleSet) > 0 {
-		roleNames = c.Identity.RoleSet.RoleNames()
+		roleNames = c.Identity.RoleSet.Roles()
 	}
 
 	// Fill in the environment variables from the config and interpolate them if needed.
@@ -791,7 +791,7 @@ func (c *ServerContext) ExecCommand() (*ExecCommand, error) {
 	// If the identity has roles, extract the role names.
 	var roleNames []string
 	if len(c.Identity.RoleSet) > 0 {
-		roleNames = c.Identity.RoleSet.RoleNames()
+		roleNames = c.Identity.RoleSet.Roles()
 	}
 
 	// Extract the command to be executed. This only exists if command execution
@@ -931,7 +931,7 @@ func ComputeLockTargets(s Server, id IdentityContext) ([]types.LockTarget, error
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	roleTargets := services.RolesToLockTargets(apiutils.Deduplicate(append(id.RoleSet.RoleNames(), id.UnmappedRoles...)))
+	roleTargets := services.RolesToLockTargets(apiutils.Deduplicate(append(id.RoleSet.Roles(), id.UnmappedRoles...)))
 	return append([]types.LockTarget{
 		{User: id.TeleportUser},
 		{Login: id.Login},

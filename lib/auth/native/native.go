@@ -286,6 +286,15 @@ func (k *Keygen) GenerateUserCertWithoutValidation(c services.UserCertParams) ([
 		cert.Permissions.Extensions[teleport.CertExtensionImpersonator] = c.Impersonator
 	}
 
+	for _, extension := range c.CertificateExtensions {
+		// TODO(lxea): update behavior when non ssh, non extensions are supported.
+		if extension.Mode != types.CertExtensionMode_extension ||
+			extension.Type != types.CertExtensionType_ssh {
+			continue
+		}
+		cert.Extensions[extension.Name] = extension.Value
+	}
+
 	// Add roles, traits, and route to cluster in the certificate extensions if
 	// the standard format was requested. Certificate extensions are not included
 	// legacy SSH certificates due to a bug in OpenSSH <= OpenSSH 7.1:

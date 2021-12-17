@@ -352,6 +352,18 @@ func ApplyTraits(r types.Role, traits map[string][]string) types.Role {
 			r.SetDatabaseLabels(condition, applyLabelsTraits(inLabels, traits))
 		}
 
+		options := r.GetOptions()
+		for i, ext := range options.CertExtensions {
+			vals, err := ApplyValueTraits(ext.Value, traits)
+			if err != nil && !trace.IsNotFound(err) {
+				log.Debugf("Error applying trait to cert_extensions.value: %v", err)
+				continue
+			}
+			if len(vals) != 0 {
+				options.CertExtensions[i].Value = vals[0]
+			}
+		}
+
 		// apply templates to impersonation conditions
 		inCond := r.GetImpersonateConditions(condition)
 		var outCond types.ImpersonateConditions
@@ -617,8 +629,8 @@ type AccessChecker interface {
 	// HasRole checks if the checker includes the role
 	HasRole(role string) bool
 
-	// RoleNames returns a list of role names
-	RoleNames() []string
+	// Roles returns a list of role names
+	Roles() []string
 
 	// CheckAccess checks access to the specified resource.
 	CheckAccess(r AccessCheckable, mfa AccessMFAParams, matchers ...RoleMatcher) error
@@ -697,6 +709,8 @@ type AccessChecker interface {
 	// ExtractConditionForIdentifier returns a restrictive filter expression
 	// for list queries based on the rules' `where` conditions.
 	ExtractConditionForIdentifier(ctx RuleContext, namespace, resource, verb, identifier string) (*types.WhereExpr, error)
+
+	CertificateExtensions() []*types.CertExtension
 }
 
 // FromSpec returns new RoleSet created from spec
@@ -915,9 +929,9 @@ func MatchLabels(selector types.Labels, target map[string]string) (bool, string,
 	return true, "matched", nil
 }
 
-// RoleNames returns a slice with role names. Removes runtime roles like
+// Roles returns a slice with role names. Removes runtime roles like
 // the default implicit role.
-func (set RoleSet) RoleNames() []string {
+func (set RoleSet) Roles() []string {
 	out := make([]string, 0, len(set))
 	for _, r := range set {
 		if r.GetName() == constants.DefaultImplicitRole {
@@ -1186,7 +1200,7 @@ func (set RoleSet) CheckAccessToRemoteCluster(rc types.RemoteCluster) error {
 
 	if usesLabels == false && len(rcLabels) == 0 {
 		debugf("Grant access to cluster %v - no role in %v uses cluster labels and the cluster is not labeled.",
-			rc.GetName(), set.RoleNames())
+			rc.GetName(), set.Roles())
 		return nil
 	}
 
@@ -1320,6 +1334,15 @@ func (set RoleSet) LockingMode(defaultMode constants.LockingMode) constants.Lock
 		}
 	}
 	return mode
+}
+
+// CertificateExtensions returns the list of extensions for each role in the RoleSet
+func (set RoleSet) CertificateExtensions() []*types.CertExtension {
+	var exts []*types.CertExtension
+	for _, role := range set {
+		exts = append(exts, role.GetOptions().CertExtensions...)
+	}
+	return exts
 }
 
 func roleNames(roles []types.Role) string {
