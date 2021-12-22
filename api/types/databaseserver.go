@@ -29,7 +29,7 @@ import (
 // DatabaseServer represents a database access server.
 type DatabaseServer interface {
 	// Resource provides common resource methods.
-	Resource
+	ResourceWithLabels
 	// GetNamespace returns server namespace.
 	GetNamespace() string
 	// GetTeleportVersion returns the teleport version the server is running on.
@@ -241,6 +241,21 @@ func (s *DatabaseServerV3) CheckAndSetDefaults() error {
 		s.setLegacyFields(s.Spec.Database)
 	}
 	return nil
+}
+
+// Origin returns the origin value of the resource.
+func (s *DatabaseServerV3) Origin() string {
+	return s.Metadata.Origin()
+}
+
+// SetOrigin sets the origin value of the resource.
+func (s *DatabaseServerV3) SetOrigin(origin string) {
+	s.Metadata.SetOrigin(origin)
+}
+
+// GetAllLabels returns all resource's labels.
+func (s *DatabaseServerV3) GetAllLabels() map[string]string {
+	return s.Metadata.Labels
 }
 
 // Copy returns a copy of this database server object.
