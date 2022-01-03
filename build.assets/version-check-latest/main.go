@@ -77,14 +77,13 @@ func newGitHub() *ghClient {
 }
 
 func (c *ghClient) ListReleases(ctx context.Context, organization string, repository string) ([]string, error) {
-	var n int
 	var releases []string
 
 	opt := &go_github.ListOptions{
 		Page:    0,
 		PerPage: 100,
 	}
-	for {
+	for n := 0; n < 100; n++ {
 		page, resp, err := c.client.Repositories.ListReleases(ctx,
 			organization,
 			repository,
@@ -97,10 +96,6 @@ func (c *ghClient) ListReleases(ctx context.Context, organization string, reposi
 			releases = append(releases, p.GetTagName())
 		}
 
-		n += 1
-		if n == 100 {
-			break
-		}
 		if resp.NextPage == 0 {
 			break
 		}
