@@ -1,3 +1,8 @@
+// Command version-check-latest exits non-zero when given a
+// git tag that is not greater than the highest semver ever
+// published on GitHub Releases. This allows us to avoid updating
+// "latest" packages or tags when publishing patch releases for
+// older branches.
 package main
 
 import (

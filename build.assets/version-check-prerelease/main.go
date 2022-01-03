@@ -1,8 +1,6 @@
-/*
-We don't want to publish semver pre-release versions or versions with build
-metadata to package repositories, as these are typically internal builds for
-test purposes. -- 2021-12 Walt
-*/
+// Command version-check-prerelease exits non-zero when given a
+// git tag that is a prerelease. This allows us to avoid publishing
+// releases for internal builds.
 package main
 
 import (
