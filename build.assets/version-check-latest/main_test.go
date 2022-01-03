@@ -10,7 +10,7 @@ func TestCheck(t *testing.T) {
 		desc     string
 		tag      string
 		releases []string
-		err      bool
+		wantErr  bool
 	}{
 		{
 			desc: "fail-old-releases",
@@ -20,7 +20,7 @@ func TestCheck(t *testing.T) {
 				"v7.3.2",
 				"v7.0.0",
 			},
-			err: true,
+			wantErr: true,
 		},
 		{
 			desc: "fail-same-releases",
@@ -30,7 +30,7 @@ func TestCheck(t *testing.T) {
 				"v7.3.2",
 				"v7.0.0",
 			},
-			err: true,
+			wantErr: true,
 		},
 		{
 			desc: "pass-new-releases",
@@ -40,7 +40,7 @@ func TestCheck(t *testing.T) {
 				"v7.3.2",
 				"v7.0.0",
 			},
-			err: false,
+			wantErr: false,
 		},
 	}
 	for _, test := range tests {
@@ -49,11 +49,11 @@ func TestCheck(t *testing.T) {
 				releases: test.releases,
 			}
 			err := check(context.Background(), gh, "", "", test.tag)
-			if test.err && err == nil {
-				t.Fatalf("Expected an error, got nil.")
+			if test.wantErr && err == nil {
+				t.Errorf("Expected an error, got nil.")
 			}
-			if !test.err && err != nil {
-				t.Fatalf("Did not expect and error, got: %v", err)
+			if !test.wantErr && err != nil {
+				t.Errorf("Did not expect and error, got: %v", err)
 			}
 		})
 	}
